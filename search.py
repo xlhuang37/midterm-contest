@@ -214,12 +214,7 @@ def uniformCostSearch(problem: SearchProblem):
     counter = 0; end_node = curr_node;
     list_of_successor = problem.getSuccessors(curr_node.val[0])
     expanded_node.append(curr_node.val[0])
-
-    for element in list_of_successor:
-        print(element)
-        if element[0] in problem.pacLocation:
-            list_of_successor.remove(element)
-
+    print("before frontier push works")
     while(counter < len(list_of_successor)): 
         new_node = Node()
         new_node.val = (list_of_successor[counter][0], list_of_successor[counter][1], problem.agentIndex)
@@ -230,6 +225,7 @@ def uniformCostSearch(problem: SearchProblem):
     chosen_node = frontier.pop()
     end_node = chosen_node
     curr_node = chosen_node
+
     while True: # I am monitoring steps. use while true in real implementation
         if problem.isGoalState(curr_node.val[0]) == True:
             end_node = curr_node
@@ -238,7 +234,8 @@ def uniformCostSearch(problem: SearchProblem):
             
             list_of_successor = problem.getSuccessors(curr_node.val[0])
             
-            expanded_node.append(curr_node.val[0]);   
+            expanded_node.append(curr_node.val[0]);  
+            
         else:
             list_of_successor = [];   
         counter = 0;
@@ -254,6 +251,7 @@ def uniformCostSearch(problem: SearchProblem):
         chosen_node = frontier.pop()
         end_node = chosen_node
         curr_node = chosen_node
+    print("huage while loop  works")
 
 
     answer_list = []
@@ -287,20 +285,14 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
             answer_list = tem_list + answer_list
             node = node.prev
         return answer_list
-    
+
     expanded_node = []; frontier = util.PriorityQueue(); list_of_action = []; curr_node = Node()
     curr_node.val= (problem.getStartState(),None,None); 
     counter = 0; end_node = curr_node;
-    
     list_of_successor = problem.getSuccessors(curr_node.val[0])
     expanded_node.append(curr_node.val[0])
-    
-    for element in list_of_successor:
-        print(element)
-        if element[0] in problem.pacLocation:
-            list_of_successor.remove(element)
-    print(1) 
 
+    
     while(counter < len(list_of_successor)): 
         if list_of_successor[counter][0] not in expanded_node:
             new_node = Node()
@@ -314,6 +306,7 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     chosen_node = frontier.pop()
     end_node = chosen_node
     curr_node = chosen_node
+
 
     while True: # I am monitoring steps. use while true in real implementation
         if problem.isGoalState(curr_node.val[0]) == True:
@@ -340,10 +333,10 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
         end_node = chosen_node
         curr_node = chosen_node
 
-
-
+    print("end of astar")
     answer_list = []
     answer_list = find_path(end_node,answer_list)
+    print(answer_list)
     return answer_list;
 
 

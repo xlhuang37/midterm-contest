@@ -688,7 +688,6 @@ class Game:
                     #         self._agentCrash(agentIndex, quiet=True)
                     #         self.unmute()
                     #         return
-
                     self.totalAgentTimes[agentIndex] += move_time
                     #print("Agent: %d, time: %f, total: %f" % (agentIndex, move_time, self.totalAgentTimes[agentIndex]))
                     # if self.totalAgentTimes[agentIndex] > self.rules.getMaxTotalTime(agentIndex):

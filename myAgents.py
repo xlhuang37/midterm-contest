@@ -16,24 +16,7 @@ from collections import namedtuple
 import util
 import time
 import search
-
-def mazeDistance(point1, point2, gameState) -> int:
-    """
-    Returns the maze distance between any two points, using the search functions
-    you have already built. The gameState can be any game state -- Pacman's
-    position in that state is ignored.
-
-    Example usage: mazeDistance( (2,4), (5,6), gameState)
-
-    This might be a useful helper function for your ApproximateSearchAgent.
-    """
-    x1, y1 = point1
-    x2, y2 = point2
-    walls = gameState.getWalls()
-    assert not walls[x1][y1], 'point1 is a wall: ' + str(point1)
-    assert not walls[x2][y2], 'point2 is a wall: ' + str(point2)
-    prob = PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
-    return len(search.bfs(prob))
+import random
 
 
 def find_shortest_food(position, gridList):
@@ -46,25 +29,27 @@ def find_shortest_food(position, gridList):
             if min_val > val:
                 min_val = val
                 least_element = element
-        gridList.remove(least_element)
         if min_val != 99999:
             return least_element, min(val_list)
         else: 
             return 0
 
 
-def foodHeuristic(state, problem):
-    position = state[0]
-    gridList = problem.food
-    val = 0
-    if len(gridList) > 0:
-        for element in gridList:
-            val += abs(position[0] - element[0])
-            val += abs(position[1] - element[1])
-        return val/len(gridList)
-    else: 
-        return 0
 
+def foodHeuristic(state, problem):
+    position = state
+    val = 0
+    for i in range(1):
+        val += abs(position[0] - problem.goal[0])
+        val += abs(position[1] - problem.goal[1])
+    return val
+
+
+def manhattanHeuristic(position, goal, info={}):
+    "The Manhattan distance heuristic for a PositionSearchProblem"
+    xy1 = position
+    xy2 = goal
+    return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
 
 
 
@@ -76,8 +61,8 @@ IMPORTANT
 `agent` defines which agent you will use. By default, it is set to ClosestDotAgent,
 but when you're ready to test your own agent, replace it with MyAgent
 """
-def createAgents(num_pacmen, agent='ClosestDotAgent'):
-    return [eval(agent)(index=i) for i in range(num_pacmen)]
+def createAgents(num_pacmen, agent_1='MyAgent'):
+    return [eval(agent_1)(index=i) for i in range(num_pacmen)]
 
 
 class MyAgent(Agent):
@@ -93,22 +78,45 @@ class MyAgent(Agent):
         startPosition = gameState.getPacmanPosition(self.index)
         food = gameState.getFood()
         gridList = food.asList()
+        wall = gameState.getWalls()
+        wallList = wall.asList()
         "*** YOUR CODE HERE ***"
         if len(gridList) > 0:
             least_element, min_val = find_shortest_food(startPosition, gridList)
-        problem = AnyFoodSearchProblem(gameState, self.index)
+        # least_in_range = 0; least_val = 99999;
+        # if min_val > 6:
+        #     for i in range(-3,7):
+        #         for j in range(-3,7):
+        #             if (least_element[0]+i) >= 0 and (least_element[1]+j) >= 0:
+        #                 some_ele = ((least_element[0]+i), (least_element[1]+j))
+        #                 val = manhattanHeuristic(some_ele, least_element)
+        #                 if least_val > val and some_ele not in wallList:
+        #                     least_val = val
+        #                     least_in_range = some_ele
+
+        #     problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = least_in_range)
+        problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = least_element)
+       
         startPosition = least_element
-        result = search.ucs(problem)
+
+        result = search.astar(problem, foodHeuristic)
+        print(result)
         return result
 
-
     def getAction(self, state):
-        return self.findPathToClosestDot(state)[0]
+        if len(self.actionList)== 0:
+            self.actionList = self.findPathToClosestDot(state)
+        ret_val = self.actionList[0]
+        self.actionList = self.actionList[1:]
+        return ret_val
+
 
     
 
 
     def initialize(self):
+        self.actionList = []
+        self.counter
         """
         Intialize anything you want to here. This function is called
         when the agent is first created. If you don't need to use it, then
@@ -139,9 +147,10 @@ class ClosestDotAgent(Agent):
         "*** YOUR CODE HERE ***"
         if len(gridList) > 0:
             least_element, min_val = find_shortest_food(startPosition, gridList)
-        problem = AnyFoodSearchProblem(gameState, self.index)
+        problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = least_element)
         startPosition = least_element
         result = search.ucs(problem)
+
         return result
 
     def getAction(self, state):
@@ -162,24 +171,22 @@ class AnyFoodSearchProblem(PositionSearchProblem):
     method.
     """
 
-    def __init__(self, gameState, agentIndex):
+    def __init__(self, food, gameState, goal, agentIndex):
         "Stores information from the gameState.  You don't need to change this."
         # Store the food for later reference
-        food = gameState.getFood()
-        food = food.asList()
         numAgent = gameState.getNumAgents()
-        list_1 = []
-        for i in range(numAgent):
-            list_1.append(gameState.getPacmanPosition(i))
-        self.pacLocation = list_1
-
+        print("Afterfood")
         self.food = food
+        
         self.gameState = gameState
+        self.goal = goal
         # Store info for the PositionSearchProblem (no need to change this)
+        self.walls = gameState.getWalls()
         self.agentIndex = agentIndex
         self.startState = gameState.getPacmanPosition(agentIndex)
         self.costFn = lambda x: 1
         self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
+
     def isGoalState(self, state):
         """
         The state is Pacman's position. Fill this in with a goal test that will
