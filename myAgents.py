@@ -20,7 +20,7 @@ import random
 
 
 def find_shortest_food(position, gridList):
-        val_list = []; least_element = 0; min_val = 99999; result = 0
+        val_list = []; least_element = 0; min_val = 99999; result = 0; 
         for element in gridList:
             val = 0;
             val += abs(position[0] - element[0])
@@ -29,6 +29,9 @@ def find_shortest_food(position, gridList):
             if min_val > val:
                 min_val = val
                 least_element = element
+            # if val > max_val:
+            #     max_val = val
+            #     max_element = element
         if min_val != 99999:
             return least_element, min(val_list)
         else: 
@@ -61,8 +64,8 @@ IMPORTANT
 `agent` defines which agent you will use. By default, it is set to ClosestDotAgent,
 but when you're ready to test your own agent, replace it with MyAgent
 """
-def createAgents(num_pacmen, agent_1='MyAgent'):
-    return [eval(agent_1)(index=i) for i in range(num_pacmen)]
+def createAgents(num_pacmen, agent_list= ['MyAgent']):
+    return [eval(agent_list[0])(index=i) for i in range(num_pacmen)]
 
 
 class MyAgent(Agent):
@@ -75,7 +78,13 @@ class MyAgent(Agent):
         gameState.
         """
         # Here are some useful elements of the startState
-        startPosition = gameState.getPacmanPosition(self.index)
+        
+        numAgent = gameState.getNumAgents()
+        pacPosList = []
+        for i in range(numAgent):
+            pacPosList.append(gameState.getPacmanPosition(i))
+        startPosition = pacPosList[self.index]
+        pacPosList[self.index] = (999,999)
         food = gameState.getFood()
         gridList = food.asList()
         wall = gameState.getWalls()
@@ -83,29 +92,26 @@ class MyAgent(Agent):
         "*** YOUR CODE HERE ***"
         if len(gridList) > 0:
             least_element, min_val = find_shortest_food(startPosition, gridList)
-        # least_in_range = 0; least_val = 99999;
-        # if min_val > 6:
-        #     for i in range(-3,7):
-        #         for j in range(-3,7):
-        #             if (least_element[0]+i) >= 0 and (least_element[1]+j) >= 0:
-        #                 some_ele = ((least_element[0]+i), (least_element[1]+j))
-        #                 val = manhattanHeuristic(some_ele, least_element)
-        #                 if least_val > val and some_ele not in wallList:
-        #                     least_val = val
-        #                     least_in_range = some_ele
+            for i in range(numAgent):
+                pacPosList[i] = manhattanHeuristic(startPosition, pacPosList[i])
+            min_pac = min(pacPosList)
+            if min_pac < 9:
+                ran = random.randint(0, len(gridList)-1)
+                least_element = gridList[ran]
 
-        #     problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = least_in_range)
+
         problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = least_element)
        
         startPosition = least_element
 
         result = search.astar(problem, foodHeuristic)
-        print(result)
         return result
 
     def getAction(self, state):
+
         if len(self.actionList)== 0:
             self.actionList = self.findPathToClosestDot(state)
+
         ret_val = self.actionList[0]
         self.actionList = self.actionList[1:]
         return ret_val
@@ -116,7 +122,7 @@ class MyAgent(Agent):
 
     def initialize(self):
         self.actionList = []
-        self.counter
+        self.counter = 0
         """
         Intialize anything you want to here. This function is called
         when the agent is first created. If you don't need to use it, then
@@ -174,10 +180,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
     def __init__(self, food, gameState, goal, agentIndex):
         "Stores information from the gameState.  You don't need to change this."
         # Store the food for later reference
-        numAgent = gameState.getNumAgents()
-        print("Afterfood")
         self.food = food
-        
         self.gameState = gameState
         self.goal = goal
         # Store info for the PositionSearchProblem (no need to change this)
