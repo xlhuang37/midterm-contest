@@ -10,14 +10,16 @@
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
+from tracemalloc import start
 from game import Agent
+from util import PriorityQueue
 from searchProblems import PositionSearchProblem
 from collections import namedtuple
 import util
 import time
 import search
 import random
-
+from functools import partial
 
 def find_shortest_food(position, gridList):
         val_list = []; least_element = 0; min_val = 99999; result = 0; 
@@ -29,11 +31,8 @@ def find_shortest_food(position, gridList):
             if min_val > val:
                 min_val = val
                 least_element = element
-            # if val > max_val:
-            #     max_val = val
-            #     max_element = element
         if min_val != 99999:
-            return least_element, min(val_list)
+            return least_element, min_val
         else: 
             return 0
 
@@ -47,8 +46,25 @@ def foodHeuristic(state, problem):
         val += abs(position[1] - problem.goal[1])
     return val
 
+def LeftHeuristic(state, problem):
+    position = state
+    val = 0
+    for i in range(1):
+        val += abs(position[0] - problem.goal[0])
+        val += abs(position[1] - problem.goal[1])
+    val += position[0]
+    return val
 
-def manhattanHeuristic(position, goal, info={}):
+def RightHeuristic(state, problem):
+    position = state
+    val = 0
+    for i in range(1):
+        val += abs(position[0] - problem.goal[0])
+        val += abs(position[1] - problem.goal[1])
+    val -= position[1]
+    return val
+
+def manhattanHeuristic(goal, position, info={}):
     "The Manhattan distance heuristic for a PositionSearchProblem"
     xy1 = position
     xy2 = goal
@@ -64,11 +80,15 @@ IMPORTANT
 `agent` defines which agent you will use. By default, it is set to ClosestDotAgent,
 but when you're ready to test your own agent, replace it with MyAgent
 """
-def createAgents(num_pacmen, agent_list= ['MyAgent']):
-    return [eval(agent_list[0])(index=i) for i in range(num_pacmen)]
+def createAgents(num_pacmen, agent_list= ['MyAgent_1', 'MyAgent_1', 'MyAgent_1', 'MyAgent_1']):
+    ret_list = []
+    for i in range(num_pacmen):
+        index = i%len(agent_list)
+        ret_list.append(eval(agent_list[index])(index=i) )
+    return ret_list
 
 
-class MyAgent(Agent):
+class MyAgent_1(Agent):
     """
     Implementation of your agent.
     """
@@ -87,50 +107,50 @@ class MyAgent(Agent):
         pacPosList[self.index] = (999,999)
         food = gameState.getFood()
         gridList = food.asList()
-        wall = gameState.getWalls()
-        wallList = wall.asList()
+        length = len(gridList)
+        
         "*** YOUR CODE HERE ***"
-        if len(gridList) > 0:
+        
+        if length > 0:
             least_element, min_val = find_shortest_food(startPosition, gridList)
             for i in range(numAgent):
-                pacPosList[i] = manhattanHeuristic(startPosition, pacPosList[i])
+                pacPosList[i] = manhattanHeuristic(pacPosList[i], startPosition)
             min_pac = min(pacPosList)
-            if min_pac < 9:
-                ran = random.randint(0, len(gridList)-1)
-                least_element = gridList[ran]
-
-
+            if min_pac < 5:
+                decision_goAway = random.randint(0,2)
+                if decision_goAway == 2:
+                    ran = random.randint(0, length-1)
+                    least_element = gridList[ran]
+        self.destination = least_element
         problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = least_element)
-       
-        startPosition = least_element
-
         result = search.astar(problem, foodHeuristic)
+
         return result
 
+
     def getAction(self, state):
-
-        if len(self.actionList)== 0:
+        food = state.getFood()
+        if len(self.actionList) == 0:
             self.actionList = self.findPathToClosestDot(state)
-
+        elif food[self.destination[0]][self.destination[1]] == False:
+            self.actionList = self.findPathToClosestDot(state)
         ret_val = self.actionList[0]
         self.actionList = self.actionList[1:]
         return ret_val
 
 
-    
-
 
     def initialize(self):
         self.actionList = []
-        self.counter = 0
+        self.destination = (999,999)
         """
         Intialize anything you want to here. This function is called
         when the agent is first created. If you don't need to use it, then
         leave it blank
         """
 
-        
 
+    
 
 
 """
@@ -203,3 +223,43 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         else:   
             return False
 
+class AnyFoodSearchProblem_2(PositionSearchProblem):
+    """
+    A search problem for finding a path to any food.
+
+    This search problem is just like the PositionSearchProblem, but has a
+    different goal test, which you need to fill in below.  The state space and
+    successor function do not need to be changed.
+
+    The class definition above, AnyFoodSearchProblem(PositionSearchProblem),
+    inherits the methods of the PositionSearchProblem.
+
+    You can use this search problem to help you fill in the findPathToClosestDot
+    method.
+    """
+
+    def __init__(self, food, gameState, goal, agentIndex):
+        "Stores information from the gameState.  You don't need to change this."
+        # Store the food for later reference
+        self.food = food
+        self.gameState = gameState
+        self.goal = goal
+        # Store info for the PositionSearchProblem (no need to change this)
+        self.walls = gameState.getWalls()
+        self.agentIndex = agentIndex
+        self.startState = gameState.getPacmanPosition(agentIndex)
+        self.costFn = lambda x: 1
+        self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
+
+    def isGoalState(self, state):
+        """
+        The state is Pacman's position. Fill this in with a goal test that will
+        complete the problem definition.
+        """
+        (x,y) = state
+
+        "*** YOUR CODE HERE ***"
+        if (x,y) == self.goal:
+            return True
+        else:   
+            return False

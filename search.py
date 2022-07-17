@@ -333,10 +333,8 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
         end_node = chosen_node
         curr_node = chosen_node
 
-    print("end of astar")
     answer_list = []
     answer_list = find_path(end_node,answer_list)
-    print(answer_list)
     return answer_list;
 
 
