@@ -179,7 +179,6 @@ def breadthFirstSearch(problem: SearchProblem):
                     frontier.push(new_node)
                     expanded_node.append(new_node.val[0])
                 counter += 1
-        print(expanded_node)
            
 
             
@@ -214,7 +213,6 @@ def uniformCostSearch(problem: SearchProblem):
     counter = 0; end_node = curr_node;
     list_of_successor = problem.getSuccessors(curr_node.val[0])
     expanded_node.append(curr_node.val[0])
-    print("before frontier push works")
     while(counter < len(list_of_successor)): 
         new_node = Node()
         new_node.val = (list_of_successor[counter][0], list_of_successor[counter][1], problem.agentIndex)
@@ -251,7 +249,6 @@ def uniformCostSearch(problem: SearchProblem):
         chosen_node = frontier.pop()
         end_node = chosen_node
         curr_node = chosen_node
-    print("huage while loop  works")
 
 
     answer_list = []
@@ -291,7 +288,6 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     counter = 0; end_node = curr_node;
     list_of_successor = problem.getSuccessors(curr_node.val[0])
     expanded_node.append(curr_node.val[0])
-
     
     while(counter < len(list_of_successor)): 
         if list_of_successor[counter][0] not in expanded_node:

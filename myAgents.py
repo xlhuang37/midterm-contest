@@ -21,6 +21,7 @@ import search
 import random
 from functools import partial
 
+
 def find_shortest_food(position, gridList):
         val_list = []; least_element = 0; min_val = 99999; result = 0; 
         for element in gridList:
@@ -36,32 +37,22 @@ def find_shortest_food(position, gridList):
         else: 
             return 0
 
-
-
 def foodHeuristic(state, problem):
+
     position = state
     val = 0
-    for i in range(1):
-        val += abs(position[0] - problem.goal[0])
-        val += abs(position[1] - problem.goal[1])
+    val += abs(position[0] - problem.goal[0])
+    val += abs(position[1] - problem.goal[1])
+
     return val
 
-def LeftHeuristic(state, problem):
+def weirdHeuristic(state, problem):
     position = state
-    val = 0
-    for i in range(1):
-        val += abs(position[0] - problem.goal[0])
-        val += abs(position[1] - problem.goal[1])
-    val += position[0]
-    return val
-
-def RightHeuristic(state, problem):
-    position = state
-    val = 0
-    for i in range(1):
-        val += abs(position[0] - problem.goal[0])
-        val += abs(position[1] - problem.goal[1])
-    val -= position[1]
+    val = 100
+    for i in range(problem.Num):
+        pac = problem.gameState.getPacmanPosition(i)
+        val += 0.5 ** abs(position[0] - pac[0])
+        val += 0.5 ** abs(position[1] - pac[1])
     return val
 
 def manhattanHeuristic(goal, position, info={}):
@@ -80,7 +71,7 @@ IMPORTANT
 `agent` defines which agent you will use. By default, it is set to ClosestDotAgent,
 but when you're ready to test your own agent, replace it with MyAgent
 """
-def createAgents(num_pacmen, agent_list= ['MyAgent_1', 'MyAgent_1', 'MyAgent_1', 'MyAgent_1']):
+def createAgents(num_pacmen, agent_list= ['Pioneer']):
     ret_list = []
     for i in range(num_pacmen):
         index = i%len(agent_list)
@@ -88,7 +79,7 @@ def createAgents(num_pacmen, agent_list= ['MyAgent_1', 'MyAgent_1', 'MyAgent_1',
     return ret_list
 
 
-class MyAgent_1(Agent):
+class Pioneer(Agent):
     """
     Implementation of your agent.
     """
@@ -98,41 +89,54 @@ class MyAgent_1(Agent):
         gameState.
         """
         # Here are some useful elements of the startState
-        
         numAgent = gameState.getNumAgents()
         pacPosList = []
+        
         for i in range(numAgent):
             pacPosList.append(gameState.getPacmanPosition(i))
         startPosition = pacPosList[self.index]
         pacPosList[self.index] = (999,999)
-        food = gameState.getFood()
+        
+        global food
         gridList = food.asList()
         length = len(gridList)
-        
+
         "*** YOUR CODE HERE ***"
         
         if length > 0:
             least_element, min_val = find_shortest_food(startPosition, gridList)
-            for i in range(numAgent):
-                pacPosList[i] = manhattanHeuristic(pacPosList[i], startPosition)
-            min_pac = min(pacPosList)
-            if min_pac < 5:
-                decision_goAway = random.randint(0,2)
-                if decision_goAway == 2:
-                    ran = random.randint(0, length-1)
-                    least_element = gridList[ran]
-        self.destination = least_element
-        problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = least_element)
-        result = search.astar(problem, foodHeuristic)
 
+
+            self.destination[0] = least_element
+
+            # for i in range(numAgent):
+            #     pacPosList[i] = manhattanHeuristic(pacPosList[i], startPosition)
+            # min_pac = min(pacPosList)
+            # if min_pac < 7:
+            #     decision_goAway = random.randint(0,2)
+            #     if decision_goAway == 2:
+            #         ran = random.randint(0, length-1)
+            #         least_element = gridList[ran]
+            #         self.destination[0] = least_element
+            #         problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = self.destination, goal_val = min_val, agentLocation=pacPosList)
+            #         result = search.astar(problem, foodHeuristic)
+            #         return result
+
+        problem = AnyFoodSearchProblem(gameState = gameState, food = gridList, agentIndex  = self.index, goal = self.destination, goal_val = min_val, agentLocation=pacPosList)
+
+        before = time.time()
+        result = search.astar(problem, foodHeuristic)
+        after = time.time()
         return result
+        
 
 
     def getAction(self, state):
+        global food
         food = state.getFood()
         if len(self.actionList) == 0:
             self.actionList = self.findPathToClosestDot(state)
-        elif food[self.destination[0]][self.destination[1]] == False:
+        if food[self.destination[0][0]][self.destination[0][1]] == False:
             self.actionList = self.findPathToClosestDot(state)
         ret_val = self.actionList[0]
         self.actionList = self.actionList[1:]
@@ -142,15 +146,14 @@ class MyAgent_1(Agent):
 
     def initialize(self):
         self.actionList = []
-        self.destination = (999,999)
+        self.destination = [(999,999)]
+        self.dest_list = []
         """
         Intialize anything you want to here. This function is called
         when the agent is first created. If you don't need to use it, then
         leave it blank
         """
 
-
-    
 
 
 """
@@ -182,84 +185,69 @@ class ClosestDotAgent(Agent):
     def getAction(self, state):
         return self.findPathToClosestDot(state)[0]
 
+
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
     A search problem for finding a path to any food.
-
     This search problem is just like the PositionSearchProblem, but has a
     different goal test, which you need to fill in below.  The state space and
     successor function do not need to be changed.
-
     The class definition above, AnyFoodSearchProblem(PositionSearchProblem),
     inherits the methods of the PositionSearchProblem.
-
     You can use this search problem to help you fill in the findPathToClosestDot
     method.
     """
 
-    def __init__(self, food, gameState, goal, agentIndex):
+    def __init__(self, food, gameState, goal, agentIndex,  goal_val, agentLocation):
         "Stores information from the gameState.  You don't need to change this."
         # Store the food for later reference
         self.food = food
         self.gameState = gameState
-        self.goal = goal
+        self.goal = goal[0]
+        self.goal_list = goal
+        self.goal_val = goal_val
+        self.Num = self.gameState.getNumAgents()
         # Store info for the PositionSearchProblem (no need to change this)
         self.walls = gameState.getWalls()
         self.agentIndex = agentIndex
+        self.agentLocation = agentLocation
         self.startState = gameState.getPacmanPosition(agentIndex)
-        self.costFn = lambda x: 1
+        self.foundPacman = False
+        self.costFn = lambda pos: 1
+        # if self.agentIndex == 2:
+        #     self.costFn = lambda pos: .8 ** pos[1]
+        # if self.agentIndex == 3:
+        #     self.costFn = lambda pos: 1.2 ** pos[1]
+        # if self.agentIndex == 6:
+        #     self.costFn = lambda pos: .8 ** pos[0]
+        # if self.agentIndex == 7:
+        #     self.costFn = lambda pos: 1.2 ** pos[0]
         self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
+        self.counter = 0
 
     def isGoalState(self, state):
         """
         The state is Pacman's position. Fill this in with a goal test that will
         complete the problem definition.
         """
-        (x,y) = state
 
-        "*** YOUR CODE HERE ***"
+        (x,y) = state
+        
+            
+        self.counter += 1
         if (x,y) in self.food:
+
+            self.goal_list[0] = (x,y)
             return True
         else:   
             return False
+        
+        # if self.foundPacman == True:
+        #     return False
+        
+            
 
-class AnyFoodSearchProblem_2(PositionSearchProblem):
-    """
-    A search problem for finding a path to any food.
-
-    This search problem is just like the PositionSearchProblem, but has a
-    different goal test, which you need to fill in below.  The state space and
-    successor function do not need to be changed.
-
-    The class definition above, AnyFoodSearchProblem(PositionSearchProblem),
-    inherits the methods of the PositionSearchProblem.
-
-    You can use this search problem to help you fill in the findPathToClosestDot
-    method.
-    """
-
-    def __init__(self, food, gameState, goal, agentIndex):
-        "Stores information from the gameState.  You don't need to change this."
-        # Store the food for later reference
-        self.food = food
-        self.gameState = gameState
-        self.goal = goal
-        # Store info for the PositionSearchProblem (no need to change this)
-        self.walls = gameState.getWalls()
-        self.agentIndex = agentIndex
-        self.startState = gameState.getPacmanPosition(agentIndex)
-        self.costFn = lambda x: 1
-        self._visited, self._visitedlist, self._expanded = {}, [], 0 # DO NOT CHANGE
-
-    def isGoalState(self, state):
-        """
-        The state is Pacman's position. Fill this in with a goal test that will
-        complete the problem definition.
-        """
-        (x,y) = state
+        # if (x,y) in self.agentLocation:
+        #     self.foundPacman == True
 
         "*** YOUR CODE HERE ***"
-        if (x,y) == self.goal:
-            return True
-        else:   
-            return False
